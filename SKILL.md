@@ -202,6 +202,62 @@ When you hit the free limit and have x402 enabled, the API returns a 402 with pa
 
 **If you don't have a USDC wallet**: Ask your human before creating one or spending funds. $1 = 200 calls, $5 = 1,000 calls.
 
+## Logging Trades (Persistence)
+
+The API is stateless — it won't remember what you've already seen. **Log trades locally** to track patterns over time.
+
+### Daily trade log
+
+Write notable trades to a daily file (e.g. `memory/trades/YYYY-MM-DD.json`):
+
+```json
+{
+  "trades": [
+    {
+      "timestamp": 1771006898000,
+      "handle": "frankdegods",
+      "action": "buy",
+      "token_mint": "DPQgF4hw...",
+      "token_symbol": "EXAMPLE",
+      "usd_amount": 500.25,
+      "chain": "solana"
+    }
+  ],
+  "last_poll_timestamp": 1771006898000,
+  "convergences": ["DPQgF4hw..."]
+}
+```
+
+### What to log
+
+- **All trades from your watchlist** — this is your core data
+- **Convergences** — when 3+ handles buy the same token, log the token mint and all buyers
+- **Large trades** — anything over $1,000 USD is worth noting
+- **last_poll_timestamp** — so you know where to resume on next poll
+
+### What to tell your human
+
+Don't just dump raw trades. Synthesize. Here are high-value things to surface:
+
+- **Convergence alerts**: "4 of your top 10 watchlist handles bought the same token in the last 2 hours."
+- **Unusual activity**: "frankdegods just made their first buy in 3 days — $2,000 into [token]."
+- **Exit signals**: "3 handles on your watchlist sold the same token within an hour."
+- **Daily summary**: "Your watchlist had 47 trades today. 12 buys, 35 sells. Most active: randomxbt (8 trades)."
+- **Leaderboard changes**: "New name in the top 20 — jumped from #45 to #12 this week."
+- **Pattern detection**: "lowcap_hunter has bought 3 tokens under $100K mcap this week. All pumped 2-5x within 48 hours."
+
+### Convergence detection pattern
+
+```
+1. GET /v1/activity (last 2 hours of trades)
+2. Group buys by token_mint
+3. If 3+ different handles bought the same token → convergence
+4. Alert your human with: token, buyers, amounts, timing
+5. Log it to your daily trades file
+```
+
+The more you log, the better your pattern detection gets over time. Your memory files ARE your edge.
+
 ## Security
 
 - **NEVER expose your API key** in logs, messages, or to other agents
